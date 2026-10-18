@@ -1,0 +1,850 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                     "Segoe UI", sans-serif;
+        background: #f5f5f7;
+        color: #1d1d1f;
+    }
+
+    header {
+        padding: 55px 20px 35px;
+        text-align: center;
+        background: linear-gradient(180deg, #ffffff, #f5f5f7);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 7px 14px;
+        border-radius: 30px;
+        background: #e8e8ed;
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 18px;
+    }
+
+    h1 {
+        font-size: clamp(38px, 6vw, 70px);
+        letter-spacing: -3px;
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        max-width: 720px;
+        margin: 18px auto 0;
+        font-size: 19px;
+        line-height: 1.5;
+        color: #6e6e73;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 20px;
+    }
+
+    .pipeline {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin: 25px 0 35px;
+    }
+
+    .stage {
+        padding: 13px 8px;
+        text-align: center;
+        border-radius: 15px;
+        background: white;
+        color: #777;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid #e5e5e7;
+        transition: .3s;
+    }
+
+    .stage.active {
+        background: #1d1d1f;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,.15);
+    }
+
+    .card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid #e5e5e7;
+        border-radius: 28px;
+        padding: 30px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.04);
+        backdrop-filter: blur(15px);
+    }
+
+    .card h2 {
+        margin-top: 0;
+        font-size: 25px;
+        letter-spacing: -.5px;
+    }
+
+    .explanation {
+        color: #6e6e73;
+        line-height: 1.6;
+        margin-bottom: 22px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 130px;
+        border: 1px solid #d2d2d7;
+        border-radius: 16px;
+        padding: 17px;
+        font-family: inherit;
+        font-size: 15px;
+        resize: vertical;
+        outline: none;
+        background: #fafafa;
+    }
+
+    textarea:focus {
+        border-color: #888;
+        background: white;
+    }
+
+    button {
+        border: none;
+        background: #1d1d1f;
+        color: white;
+        padding: 13px 22px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 15px;
+        transition: .2s;
+    }
+
+    button:hover {
+        transform: scale(1.03);
+        background: #000;
+    }
+
+    button.secondary {
+        background: #e8e8ed;
+        color: #1d1d1f;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .chunk {
+        background: #f8f8fa;
+        border-radius: 18px;
+        padding: 18px;
+        border: 1px solid #e5e5e7;
+        margin-bottom: 12px;
+    }
+
+    .chunk strong {
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .vector {
+        font-family: monospace;
+        font-size: 13px;
+        color: #555;
+        background: #eeeeF0;
+        padding: 10px;
+        border-radius: 10px;
+        overflow-x: auto;
+    }
+
+    .score {
+        float: right;
+        font-weight: 700;
+    }
+
+    .result {
+        border-left: 4px solid #1d1d1f;
+        padding: 15px 18px;
+        margin-bottom: 12px;
+        background: #f8f8fa;
+        border-radius: 0 15px 15px 0;
+    }
+
+    .answer {
+        background: #1d1d1f;
+        color: white;
+        padding: 25px;
+        border-radius: 22px;
+        line-height: 1.7;
+        font-size: 16px;
+    }
+
+    .context {
+        background: #f2f2f7;
+        border-radius: 15px;
+        padding: 18px;
+        margin-top: 15px;
+        color: #444;
+        line-height: 1.6;
+    }
+
+    .metric {
+        text-align: center;
+        background: #f8f8fa;
+        border-radius: 18px;
+        padding: 20px;
+    }
+
+    .metric .number {
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+    .metric .label {
+        color: #777;
+        font-size: 13px;
+        margin-top: 5px;
+    }
+
+    .metrics {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .flow-arrow {
+        text-align: center;
+        font-size: 30px;
+        color: #aaa;
+        margin: -8px 0;
+    }
+
+    footer {
+        text-align: center;
+        padding: 40px 20px;
+        color: #888;
+        font-size: 13px;
+    }
+
+    @media(max-width: 800px) {
+        .pipeline {
+            grid-template-columns: repeat(2,1fr);
+        }
+
+        .grid,
+        .metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .card {
+            padding: 22px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="badge">INTERACTIVE AI LEARNING TOOL</div>
+
+    <h1>RAG Simulator</h1>
+
+    <p class="subtitle">
+        See what happens behind the scenes when an LLM uses
+        external knowledge to answer your question.
+    </p>
+</header>
+
+<div class="container">
+
+    <!-- PIPELINE -->
+    <div class="pipeline">
+        <div class="stage active" id="s1">1. Documents</div>
+        <div class="stage" id="s2">2. Chunks</div>
+        <div class="stage" id="s3">3. Embeddings</div>
+        <div class="stage" id="s4">4. Vector DB</div>
+        <div class="stage" id="s5">5. Retrieval</div>
+        <div class="stage" id="s6">6. Context</div>
+        <div class="stage" id="s7">7. LLM</div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="card">
+        <h2>01 — Knowledge Base</h2>
+
+        <p class="explanation">
+            In a real RAG system, your knowledge base could contain
+            PDFs, policies, webpages, manuals, FAQs or internal documents.
+        </p>
+
+        <textarea id="documents">UGRO Home Loan Policy
+
+Eligible applicants must be between 21 and 65 years old.
+The applicant must have a valid identity document.
+Salaried applicants must provide salary slips and bank statements.
+The property must have valid ownership documents.
+Credit assessment is performed after document verification.</textarea>
+
+        <button onclick="createChunks()">
+            Convert Documents → Chunks
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- STEP 2 -->
+    <div class="card hidden" id="chunkCard">
+        <h2>02 — Chunking</h2>
+
+        <p class="explanation">
+            Large documents are broken into smaller pieces called
+            <b>chunks</b>. Smaller chunks make retrieval more precise.
+        </p>
+
+        <div id="chunks"></div>
+
+        <button onclick="createEmbeddings()">
+            Generate Embeddings
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- STEP 3 -->
+    <div class="card hidden" id="embeddingCard">
+        <h2>03 — Vector Embeddings</h2>
+
+        <p class="explanation">
+            Each chunk is converted into a numerical representation.
+            Real embedding models generate hundreds or thousands of
+            dimensions. This simulator uses simplified vectors.
+        </p>
+
+        <div id="embeddings"></div>
+
+        <button onclick="buildVectorDB()">
+            Store in Vector Database
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- STEP 4 -->
+    <div class="card hidden" id="vectorCard">
+        <h2>04 — Vector Database</h2>
+
+        <p class="explanation">
+            The vectors are stored in a vector database so that the
+            system can quickly find chunks that are semantically
+            similar to a user's question.
+        </p>
+
+        <div class="metrics">
+            <div class="metric">
+                <div class="number" id="chunkCount">0</div>
+                <div class="label">Chunks</div>
+            </div>
+
+            <div class="metric">
+                <div class="number">Vector</div>
+                <div class="label">Storage Type</div>
+            </div>
+
+            <div class="metric">
+                <div class="number">Top-K</div>
+                <div class="label">Retrieval Method</div>
+            </div>
+
+            <div class="metric">
+                <div class="number">Semantic</div>
+                <div class="label">Search</div>
+            </div>
+        </div>
+
+        <button onclick="showQuery()">
+            Ask the Knowledge Base
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- QUERY -->
+    <div class="card hidden" id="queryCard">
+        <h2>05 — User Query</h2>
+
+        <p class="explanation">
+            Now the user asks a question. The question is also converted
+            into an embedding so the system can compare it with stored
+            document embeddings.
+        </p>
+
+        <textarea id="query">What documents are required for a salaried applicant?</textarea>
+
+        <button onclick="retrieve()">
+            Convert Query → Search Vector
+        </button>
+
+        <div id="queryVector" class="hidden"></div>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- RETRIEVAL -->
+    <div class="card hidden" id="retrievalCard">
+        <h2>06 — Similarity Search</h2>
+
+        <p class="explanation">
+            The query vector is compared with the vectors stored in the
+            database. The most similar chunks are retrieved.
+        </p>
+
+        <div id="retrievalResults"></div>
+
+        <button onclick="buildContext()">
+            Retrieve Top-K Context
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- CONTEXT -->
+    <div class="card hidden" id="contextCard">
+        <h2>07 — Context Augmentation</h2>
+
+        <p class="explanation">
+            This is the key RAG step. The system does NOT send the
+            entire knowledge base to the LLM. It sends the user question
+            plus the most relevant retrieved chunks.
+        </p>
+
+        <div class="context" id="context"></div>
+
+        <button onclick="generateAnswer()">
+            Send Context + Query → LLM
+        </button>
+    </div>
+
+    <div class="flow-arrow">↓</div>
+
+    <!-- LLM -->
+    <div class="card hidden" id="answerCard">
+        <h2>08 — LLM Generation</h2>
+
+        <p class="explanation">
+            The LLM receives the user's question together with the
+            retrieved context and generates the final answer.
+        </p>
+
+        <div class="answer" id="answer"></div>
+
+        <br>
+
+        <button class="secondary" onclick="resetSimulator()">
+            Run Again
+        </button>
+    </div>
+
+</div>
+
+<footer>
+    RAG Simulator · Learn by seeing the pipeline
+</footer>
+
+
+<script>
+
+let chunks = [];
+let vectors = [];
+let retrieved = [];
+
+
+/* --------------------------------
+   UTILITY
+-------------------------------- */
+
+function activateStage(number) {
+
+    for(let i = 1; i <= 7; i++) {
+        document.getElementById("s" + i)
+            .classList.toggle("active", i <= number);
+    }
+}
+
+function show(id) {
+    document.getElementById(id)
+        .classList.remove("hidden");
+
+    document.getElementById(id)
+        .scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+}
+
+
+/* --------------------------------
+   STEP 1 → CHUNKS
+-------------------------------- */
+
+function createChunks() {
+
+    const text =
+        document.getElementById("documents").value;
+
+    const sentences =
+        text.split(".")
+        .map(x => x.trim())
+        .filter(x => x.length > 10);
+
+    chunks = [];
+
+    for(let i = 0; i < sentences.length; i += 2) {
+
+        chunks.push(
+            sentences
+                .slice(i, i + 2)
+                .join(". ") + "."
+        );
+    }
+
+    const container =
+        document.getElementById("chunks");
+
+    container.innerHTML = "";
+
+    chunks.forEach((chunk, index) => {
+
+        container.innerHTML += `
+            <div class="chunk">
+                <strong>Chunk ${index + 1}</strong>
+                ${chunk}
+            </div>
+        `;
+    });
+
+    show("chunkCard");
+    activateStage(2);
+}
+
+
+/* --------------------------------
+   STEP 2 → EMBEDDINGS
+-------------------------------- */
+
+function createEmbeddings() {
+
+    vectors = [];
+
+    const container =
+        document.getElementById("embeddings");
+
+    container.innerHTML = "";
+
+    chunks.forEach((chunk, index) => {
+
+        const vector = generateVector(chunk);
+
+        vectors.push(vector);
+
+        container.innerHTML += `
+            <div class="chunk">
+                <strong>Chunk ${index + 1}</strong>
+
+                <div class="vector">
+                    [${vector.join(", ")}]
+                </div>
+
+                <small>
+                    Simplified embedding representation
+                </small>
+            </div>
+        `;
+    });
+
+    show("embeddingCard");
+    activateStage(3);
+}
+
+
+/* --------------------------------
+   FAKE EMBEDDING MODEL
+-------------------------------- */
+
+function generateVector(text) {
+
+    const lower = text.toLowerCase();
+
+    let vector = [
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.1
+    ];
+
+    if(lower.includes("salary") ||
+       lower.includes("salaried"))
+        vector[0] += 0.9;
+
+    if(lower.includes("document") ||
+       lower.includes("identity"))
+        vector[1] += 0.8;
+
+    if(lower.includes("property") ||
+       lower.includes("ownership"))
+        vector[2] += 0.8;
+
+    if(lower.includes("credit"))
+        vector[3] += 0.7;
+
+    if(lower.includes("age") ||
+       lower.includes("applicant"))
+        vector[4] += 0.7;
+
+    return vector.map(x => x.toFixed(2));
+}
+
+
+/* --------------------------------
+   STEP 3 → VECTOR DB
+-------------------------------- */
+
+function buildVectorDB() {
+
+    document.getElementById("chunkCount")
+        .innerText = chunks.length;
+
+    show("vectorCard");
+    activateStage(4);
+}
+
+
+/* --------------------------------
+   QUERY
+-------------------------------- */
+
+function showQuery() {
+
+    show("queryCard");
+    activateStage(5);
+}
+
+
+function retrieve() {
+
+    const query =
+        document.getElementById("query").value;
+
+    const queryVector =
+        generateVector(query);
+
+    document.getElementById("queryVector").innerHTML = `
+        <div class="context">
+            <strong>Query Embedding</strong>
+            <br><br>
+            <span class="vector">
+                [${queryVector.join(", ")}]
+            </span>
+        </div>
+    `;
+
+    document.getElementById("queryVector")
+        .classList.remove("hidden");
+
+    /*
+        Calculate cosine similarity
+    */
+
+    let scored = chunks.map((chunk, index) => {
+
+        const score =
+            cosineSimilarity(
+                queryVector,
+                vectors[index]
+            );
+
+        return {
+            chunk,
+            index,
+            score
+        };
+    });
+
+    scored.sort((a,b) => b.score - a.score);
+
+    retrieved = scored.slice(0, 3);
+
+    const results =
+        document.getElementById("retrievalResults");
+
+    results.innerHTML = "";
+
+    retrieved.forEach((item, i) => {
+
+        results.innerHTML += `
+            <div class="result">
+
+                <span class="score">
+                    ${(item.score * 100).toFixed(1)}%
+                </span>
+
+                <strong>
+                    Retrieved Chunk ${item.index + 1}
+                </strong>
+
+                <br><br>
+
+                ${item.chunk}
+
+            </div>
+        `;
+    });
+
+    show("retrievalCard");
+    activateStage(5);
+}
+
+
+/* --------------------------------
+   COSINE SIMILARITY
+-------------------------------- */
+
+function cosineSimilarity(a, b) {
+
+    a = a.map(Number);
+    b = b.map(Number);
+
+    let dot = 0;
+    let magA = 0;
+    let magB = 0;
+
+    for(let i = 0; i < a.length; i++) {
+
+        dot += a[i] * b[i];
+
+        magA += a[i] * a[i];
+
+        magB += b[i] * b[i];
+    }
+
+    return dot /
+        (Math.sqrt(magA) *
+         Math.sqrt(magB));
+}
+
+
+/* --------------------------------
+   BUILD CONTEXT
+-------------------------------- */
+
+function buildContext() {
+
+    const context =
+        document.getElementById("context");
+
+    const selected =
+        retrieved
+        .map(x => x.chunk)
+        .join("<br><br>");
+
+    context.innerHTML = `
+        <strong>Retrieved Context:</strong>
+
+        <br><br>
+
+        ${selected}
+
+        <hr>
+
+        <strong>User Question:</strong>
+
+        <br><br>
+
+        ${document.getElementById("query").value}
+    `;
+
+    show("contextCard");
+    activateStage(6);
+}
+
+
+/* --------------------------------
+   LLM RESPONSE
+-------------------------------- */
+
+function generateAnswer() {
+
+    const query =
+        document.getElementById("query")
+        .value.toLowerCase();
+
+    let answer = "";
+
+    if(query.includes("document") &&
+       query.includes("salar")) {
+
+        answer = `
+            Based on the retrieved policy context,
+            a salaried applicant must provide
+            <b>salary slips and bank statements</b>.
+            
+            The applicant must also provide a
+            <b>valid identity document</b>.
+        `;
+
+    } else {
+
+        answer = `
+            Based on the retrieved knowledge,
+            the answer is generated using the
+            most relevant information retrieved
+            from the knowledge base.
+        `;
+    }
+
+    document.getElementById("answer")
+        .innerHTML = answer;
+
+    show("answerCard");
+    activateStage(7);
+}
+
+
+/* --------------------------------
+   RESET
+-------------------------------- */
+
+function resetSimulator() {
+
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>
+```
